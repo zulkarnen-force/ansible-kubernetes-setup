@@ -1,0 +1,15 @@
+---
+- name: Setup Kubernetes Cluster
+  hosts: kubernetes
+  become: true
+  tasks:
+    - name: Install dependencies for Docker
+      include_tasks: roles/common/tasks/install_dependencies.yaml
+    - name: Setup containerd
+      include_tasks: roles/common/tasks/setup_containerd.yaml
+    - name: Disable swap
+      include_tasks: roles/common/tasks/disable_swap.yaml
+    - name: Configure sysctl
+      include_tasks: roles/common/tasks/configure_sysctl.yaml
+    - name: Install Kubernetes
+      include_tasks: roles/common/tasks/install_kubernetes.yaml

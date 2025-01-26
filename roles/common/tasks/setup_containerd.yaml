@@ -1,0 +1,17 @@
+---
+- name: Configure default config
+  shell: containerd config default > /etc/containerd/config.toml
+  become: true
+
+- name: Enable SystemdCgroup in containerd config
+  replace:
+    path: /etc/containerd/config.toml
+    regexp: "SystemdCgroup = false"
+    replace: "SystemdCgroup = true"
+    backup: yes
+
+- name: Restart containerd
+  systemd:
+    name: containerd
+    state: restarted
+    enabled: yes
