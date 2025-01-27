@@ -1,0 +1,7 @@
+---
+- name: Setup Kubernetes Cluster
+  hosts: nfs-server
+  become: true
+  tasks:
+    - name: Setup and Configure NFS Server
+      include_tasks: roles/nfs/tasks/setup_nfs_server.yaml

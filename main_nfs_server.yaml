@@ -1,0 +1,11 @@
+- name: Setup NFS Server
+  hosts: nfs-server
+  become: true
+  roles:
+    - nfs-server
+
+- name: Instal Common in workers hosts
+  hosts: workers
+  become: true
+  roles:
+    - nfs-client

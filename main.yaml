@@ -1,6 +1,6 @@
 ---
 - name: Setup Kubernetes Cluster
-  hosts: masters
+  hosts: workers
   become: true
   tasks:
     - name: Install dependencies for Docker
