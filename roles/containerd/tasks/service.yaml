@@ -1,0 +1,42 @@
+---
+# Manage containerd service
+
+- name: Enable and start containerd service
+  systemd:
+    name: containerd
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  tags: containerd
+
+- name: Verify containerd is running
+  command: systemctl is-active containerd
+  register: containerd_status
+  failed_when: containerd_status.stdout != "active"
+  retries: 3
+  delay: 5
+  tags:
+    - containerd
+    - verify
+
+- name: Display containerd service status
+  debug:
+    msg: "Containerd service status: {{ containerd_status.stdout }}"
+  tags:
+    - containerd
+    - verify
+
+- name: Test containerd functionality
+  command: ctr version
+  register: containerd_version_output
+  failed_when: containerd_version_output.rc != 0
+  tags:
+    - containerd
+    - verify
+
+- name: Display containerd version
+  debug:
+    msg: "Containerd version: {{ containerd_version_output.stdout_lines }}"
+  tags:
+    - containerd
+    - verify

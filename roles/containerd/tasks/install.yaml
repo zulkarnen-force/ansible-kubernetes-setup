@@ -1,6 +1,6 @@
 ---
-# Install containerd as the container runtime for Kubernetes
-# This replaces Docker to provide a lightweight, CRI-compatible runtime
+# Install containerd from official repositories
+# Replaces Docker installation with standalone containerd
 
 - name: Install system dependencies for containerd
   apt:
@@ -12,38 +12,55 @@
       - software-properties-common
     state: present
     update_cache: yes
+  tags:
+    - containerd
+    - dependencies
 
 - name: Create keyrings directory for apt signing keys
   file:
     path: /etc/apt/keyrings
     state: directory
     mode: "0755"
+  tags: containerd
 
 - name: Download containerd GPG key
   get_url:
-    url: https://download.docker.com/linux/ubuntu/gpg
+    url: "{{ containerd_gpg_key_url }}"
     dest: /etc/apt/keyrings/containerd.asc
     mode: "0644"
+  tags: containerd
 
 - name: Add containerd repository to apt sources
   copy:
     content: |
-      deb [arch=amd64 signed-by=/etc/apt/keyrings/containerd.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+      deb [arch={{ containerd_arch }} signed-by=/etc/apt/keyrings/containerd.asc] {{ containerd_repo_url }} {{ ansible_distribution_release }} stable
     dest: /etc/apt/sources.list.d/containerd.list
     mode: "0644"
+  tags: containerd
 
 - name: Update apt repository cache
   apt:
     update_cache: yes
+  tags: containerd
 
 - name: Install containerd
   apt:
     name:
-      - containerd.io
+      - containerd.io={{ containerd_version }}*
     state: present
+    allow_downgrade: "{{ containerd_allow_downgrade }}"
+  tags: containerd
+
+- name: Hold containerd package at current version
+  dpkg_selections:
+    name: containerd.io
+    selection: hold
+  when: containerd_hold_package
+  tags: containerd
 
 - name: Create containerd configuration directory
   file:
     path: /etc/containerd
     state: directory
     mode: "0755"
+  tags: containerd

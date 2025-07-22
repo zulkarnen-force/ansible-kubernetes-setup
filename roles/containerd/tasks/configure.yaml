@@ -1,0 +1,63 @@
+---
+# Configure containerd for Kubernetes compatibility
+
+- name: Stop containerd service before configuration
+  systemd:
+    name: containerd
+    state: stopped
+  ignore_errors: true
+  tags: containerd
+
+- name: Remove existing containerd configuration
+  file:
+    path: /etc/containerd/config.toml
+    state: absent
+  tags: containerd
+
+- name: Generate default containerd configuration
+  shell: containerd config default > /etc/containerd/config.toml
+  become: true
+  tags: containerd
+
+- name: Enable SystemdCgroup in containerd configuration
+  replace:
+    path: /etc/containerd/config.toml
+    regexp: "SystemdCgroup = false"
+    replace: "SystemdCgroup = true"
+    backup: yes
+  notify: restart containerd
+  tags: containerd
+
+- name: Set sandbox image for containerd
+  replace:
+    path: /etc/containerd/config.toml
+    regexp: 'sandbox_image = "registry.k8s.io/pause:.*"'
+    replace: 'sandbox_image = "{{ containerd_sandbox_image }}"'
+    backup: yes
+  notify: restart containerd
+  tags: containerd
+
+- name: Configure containerd registry mirrors (if defined)
+  blockinfile:
+    path: /etc/containerd/config.toml
+    marker: "# {mark} ANSIBLE MANAGED - Registry mirrors"
+    block: |
+      {% if containerd_registry_mirrors is defined and containerd_registry_mirrors | length > 0 %}
+      [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+      {% for mirror in containerd_registry_mirrors %}
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."{{ mirror.registry }}"]
+          endpoint = {{ mirror.endpoints | to_json }}
+      {% endfor %}
+      {% endif %}
+  when: containerd_registry_mirrors is defined
+  notify: restart containerd
+  tags: containerd
+
+- name: Set containerd log level
+  replace:
+    path: /etc/containerd/config.toml
+    regexp: 'level = ".*"'
+    replace: 'level = "{{ containerd_log_level }}"'
+    backup: yes
+  notify: restart containerd
+  tags: containerd

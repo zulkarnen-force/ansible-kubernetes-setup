@@ -1,0 +1,34 @@
+---
+# Default variables for containerd role
+# These variables can be overridden in group_vars, host_vars, or playbooks
+
+# Containerd package version (leave empty for latest)
+containerd_version: ""
+
+# Whether to allow package downgrade
+containerd_allow_downgrade: false
+
+# Whether to hold the package at current version
+containerd_hold_package: true
+
+# Containerd repository configuration
+containerd_gpg_key_url: "https://download.docker.com/linux/ubuntu/gpg"
+containerd_repo_url: "https://download.docker.com/linux/ubuntu"
+containerd_arch: "amd64"
+
+# Containerd configuration
+containerd_sandbox_image: "registry.k8s.io/pause:3.9"
+containerd_log_level: "info"
+
+# Registry mirrors (optional)
+# Example:
+# containerd_registry_mirrors:
+#   - registry: "docker.io"
+#     endpoints: ["https://mirror.example.com"]
+#   - registry: "gcr.io"
+#     endpoints: ["https://gcr-mirror.example.com"]
+containerd_registry_mirrors: []
+
+# Service configuration
+containerd_service_enabled: true
+containerd_service_state: "started"

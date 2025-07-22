@@ -1,0 +1,77 @@
+---
+# Cleanup playbook to remove Docker and Docker-related configurations
+# Run this playbook to clean up any existing Docker installations
+
+- name: Cleanup Docker Installation
+  hosts: all
+  become: true
+  vars:
+    docker_packages:
+      - docker.io
+      - docker-ce
+      - docker-ce-cli
+      - docker-compose
+      - docker-compose-plugin
+      - docker-ce-rootless-extras
+    docker_files:
+      - /etc/docker
+      - /var/lib/docker
+      - /var/lib/dockershim
+      - /etc/apt/sources.list.d/docker.list
+      - /etc/apt/keyrings/docker.asc
+      - /usr/share/keyrings/docker-archive-keyring.gpg
+    docker_services:
+      - docker
+      - docker.socket
+      - containerd
+
+  tasks:
+    - name: Stop Docker services
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop: "{{ docker_services }}"
+      ignore_errors: true
+      tags: ["cleanup", "docker"]
+
+    - name: Remove Docker packages
+      apt:
+        name: "{{ docker_packages }}"
+        state: absent
+        purge: yes
+        autoremove: yes
+      tags: ["cleanup", "docker"]
+
+    - name: Remove Docker group
+      group:
+        name: docker
+        state: absent
+      tags: ["cleanup", "docker"]
+
+    - name: Remove Docker files and directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ docker_files }}"
+      tags: ["cleanup", "docker"]
+
+    - name: Remove Docker GPG keys from apt
+      apt_key:
+        keyserver: keyserver.ubuntu.com
+        id: "{{ item }}"
+        state: absent
+      loop:
+        - "9DC858229FC7DD38854AE2D88D81803C0EBFCD88"
+      ignore_errors: true
+      tags: ["cleanup", "docker"]
+
+    - name: Update apt cache after cleanup
+      apt:
+        update_cache: yes
+      tags: ["cleanup", "docker"]
+
+    - name: Display cleanup completion message
+      debug:
+        msg: "Docker cleanup completed. You can now run the containerd setup playbook."
+      tags: ["cleanup", "docker"]

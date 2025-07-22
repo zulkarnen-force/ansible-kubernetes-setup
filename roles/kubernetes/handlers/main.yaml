@@ -1,0 +1,15 @@
+---
+# Handlers for Kubernetes role
+
+- name: restart kubelet
+  systemd:
+    name: kubelet
+    state: restarted
+    daemon_reload: yes
+  listen: restart kubelet
+
+- name: reload kubelet
+  systemd:
+    name: kubelet
+    state: reloaded
+  listen: reload kubelet

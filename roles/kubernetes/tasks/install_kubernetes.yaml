@@ -1,0 +1,74 @@
+---
+# Install Kubernetes components (kubelet, kubeadm, kubectl)
+
+- name: Create keyrings directory for Kubernetes GPG key
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+  tags: kubernetes
+
+- name: Add Kubernetes GPG key
+  shell: curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  args:
+    creates: "/etc/apt/keyrings/kubernetes-apt-keyring.gpg"
+  become: true
+  tags: kubernetes
+
+- name: Add Kubernetes repository
+  apt_repository:
+    filename: kubernetes
+    repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /"
+    update_cache: yes
+  tags: kubernetes
+
+- name: Install Kubernetes packages
+  apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+    update_cache: yes
+  tags: kubernetes
+
+- name: Hold Kubernetes packages at the current version
+  dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+  tags: kubernetes
+
+- name: Configure kubelet to use systemd cgroup driver
+  lineinfile:
+    path: /etc/default/kubelet
+    line: 'KUBELET_EXTRA_ARGS="--cgroup-driver=systemd"'
+    create: yes
+  notify: restart kubelet
+  tags: kubernetes
+
+- name: Start and enable kubelet service
+  systemd:
+    name: kubelet
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  tags: kubernetes
+
+- name: Verify kubelet service is running
+  command: systemctl is-active kubelet
+  register: kubelet_status
+  failed_when: kubelet_status.stdout not in ["active", "activating"]
+  tags:
+    - kubernetes
+    - verify
+
+- name: Display kubelet status
+  debug:
+    msg: "Kubelet service status: {{ kubelet_status.stdout }}"
+  tags:
+    - kubernetes
+    - verify

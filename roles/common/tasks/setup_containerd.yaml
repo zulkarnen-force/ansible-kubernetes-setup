@@ -1,17 +1,48 @@
 ---
-- name: Configure default config
+# Configure containerd for Kubernetes
+# This sets up containerd with proper systemd cgroup driver and runtime configurations
+
+- name: Stop containerd service before configuration
+  systemd:
+    name: containerd
+    state: stopped
+  ignore_errors: true
+
+- name: Remove existing containerd configuration
+  file:
+    path: /etc/containerd/config.toml
+    state: absent
+
+- name: Generate default containerd configuration
   shell: containerd config default > /etc/containerd/config.toml
   become: true
 
-- name: Enable SystemdCgroup in containerd config
+- name: Enable SystemdCgroup in containerd configuration
   replace:
     path: /etc/containerd/config.toml
     regexp: "SystemdCgroup = false"
     replace: "SystemdCgroup = true"
     backup: yes
 
-- name: Restart containerd
+- name: Set sandbox image for containerd (Ubuntu)
+  replace:
+    path: /etc/containerd/config.toml
+    regexp: 'sandbox_image = "registry.k8s.io/pause:.*"'
+    replace: 'sandbox_image = "registry.k8s.io/pause:3.9"'
+    backup: yes
+
+- name: Enable and start containerd service
   systemd:
     name: containerd
-    state: restarted
+    state: started
     enabled: yes
+    daemon_reload: yes
+
+- name: Verify containerd is running
+  command: systemctl is-active containerd
+  register: containerd_status
+  failed_when: containerd_status.stdout != "active"
+
+- name: Display containerd status
+  debug:
+    msg: "Containerd service status: {{ containerd_status.stdout }}"

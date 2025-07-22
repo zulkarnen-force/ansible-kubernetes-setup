@@ -1,0 +1,88 @@
+---
+# Verification playbook for containerd and Kubernetes setup
+# This playbook verifies that containerd is properly configured and Kubernetes is ready
+
+- name: Verify Containerd and Kubernetes Setup
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Check if containerd is installed
+      command: which containerd
+      register: containerd_installed
+      failed_when: false
+      tags: ["verify", "containerd"]
+
+    - name: Check containerd service status
+      command: systemctl is-active containerd
+      register: containerd_service_status
+      failed_when: false
+      tags: ["verify", "containerd"]
+
+    - name: Test containerd functionality
+      command: ctr version
+      register: containerd_version
+      failed_when: false
+      tags: ["verify", "containerd"]
+
+    - name: Check if Kubernetes components are installed
+      command: "which {{ item }}"
+      register: k8s_components
+      failed_when: false
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+      tags: ["verify", "kubernetes"]
+
+    - name: Check kubelet service status
+      command: systemctl is-active kubelet
+      register: kubelet_service_status
+      failed_when: false
+      tags: ["verify", "kubernetes"]
+
+    - name: Verify kernel modules are loaded
+      shell: lsmod | grep -E "(overlay|br_netfilter)"
+      register: kernel_modules
+      failed_when: false
+      tags: ["verify", "kernel"]
+
+    - name: Check sysctl settings
+      shell: sysctl net.bridge.bridge-nf-call-iptables net.ipv4.ip_forward
+      register: sysctl_settings
+      failed_when: false
+      tags: ["verify", "sysctl"]
+
+    - name: Check if swap is disabled
+      command: swapon --show
+      register: swap_status
+      failed_when: false
+      tags: ["verify", "swap"]
+
+    - name: Display verification results
+      debug:
+        msg: |
+          ========================================
+          VERIFICATION RESULTS FOR {{ inventory_hostname }}
+          ========================================
+
+          CONTAINERD:
+          - Installed: {{ 'YES' if containerd_installed.rc == 0 else 'NO' }}
+          - Service Active: {{ 'YES' if containerd_service_status.stdout == 'active' else 'NO (' + containerd_service_status.stdout + ')' }}
+          - Version Command: {{ 'SUCCESS' if containerd_version.rc == 0 else 'FAILED' }}
+
+          KUBERNETES:
+          - Components Installed: {{ 'YES' if k8s_components.results | map(attribute='rc') | list | max == 0 else 'NO' }}
+          - Kubelet Service: {{ 'ACTIVE' if kubelet_service_status.stdout in ['active', 'activating'] else kubelet_service_status.stdout }}
+
+          SYSTEM:
+          - Kernel Modules: {{ 'LOADED' if kernel_modules.rc == 0 else 'NOT LOADED' }}
+          - Sysctl Settings: {{ 'CONFIGURED' if sysctl_settings.rc == 0 else 'NOT CONFIGURED' }}
+          - Swap: {{ 'DISABLED' if swap_status.stdout == '' else 'ENABLED' }}
+
+          {% if containerd_installed.rc == 0 and containerd_service_status.stdout == 'active' and k8s_components.results | map(attribute='rc') | list | max == 0 %}
+          STATUS: ✅ READY FOR KUBERNETES CLUSTER SETUP
+          {% else %}
+          STATUS: ❌ ISSUES DETECTED - NEEDS ATTENTION
+          {% endif %}
+      tags: ["verify", "summary"]

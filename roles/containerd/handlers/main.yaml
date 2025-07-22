@@ -1,0 +1,15 @@
+---
+# Handlers for containerd role
+
+- name: restart containerd
+  systemd:
+    name: containerd
+    state: restarted
+    daemon_reload: yes
+  listen: restart containerd
+
+- name: reload containerd
+  systemd:
+    name: containerd
+    state: reloaded
+  listen: reload containerd

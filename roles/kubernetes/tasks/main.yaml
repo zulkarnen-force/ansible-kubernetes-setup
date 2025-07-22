@@ -1,0 +1,9 @@
+---
+# Main tasks for Kubernetes installation and configuration
+# This role handles Kubernetes components installation without container runtime
+
+- name: Include system preparation tasks
+  include_tasks: system_prep.yaml
+
+- name: Include Kubernetes installation tasks
+  include_tasks: install_kubernetes.yaml

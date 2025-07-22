@@ -3,7 +3,7 @@
   hosts: workers
   become: true
   tasks:
-    - name: Install dependencies for Docker
+    - name: Install containerd container runtime
       include_tasks: roles/common/tasks/install_dependencies.yaml
     - name: Setup containerd
       include_tasks: roles/common/tasks/setup_containerd.yaml
