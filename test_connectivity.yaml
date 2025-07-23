@@ -1,0 +1,91 @@
+---
+# SSH Connectivity Test Playbook
+# This playbook tests SSH connectivity and gathers system information
+
+- name: Test SSH Connectivity and System Information
+  hosts: all
+  gather_facts: yes
+
+  tasks:
+    - name: Test basic connectivity with ping
+      ping:
+      tags: ["connectivity", "ping"]
+
+    - name: Gather system information
+      setup:
+      tags: ["connectivity", "facts"]
+
+    - name: Test SSH user and permissions
+      command: whoami
+      register: current_user
+      tags: ["connectivity", "user"]
+
+    - name: Check sudo privileges
+      command: sudo -n true
+      register: sudo_check
+      failed_when: false
+      tags: ["connectivity", "sudo"]
+
+    - name: Test file system access
+      file:
+        path: /tmp/ansible_test
+        state: directory
+        mode: "0755"
+      register: fs_test
+      tags: ["connectivity", "filesystem"]
+
+    - name: Cleanup test directory
+      file:
+        path: /tmp/ansible_test
+        state: absent
+      tags: ["connectivity", "cleanup"]
+
+    - name: Display connectivity results
+      debug:
+        msg: |
+          ========================================
+          SSH CONNECTIVITY TEST RESULTS
+          ========================================
+
+          HOST: {{ inventory_hostname }}
+          IP: {{ ansible_default_ipv4.address | default('N/A') }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+
+          SSH CONNECTION:
+          - User: {{ current_user.stdout }}
+          - SSH Key: {{ 'SUCCESS' if ansible_ssh_private_key_file is defined else 'PASSWORD' }}
+          - Sudo Access: {{ 'YES' if sudo_check.rc == 0 else 'NO' }}
+          - File System: {{ 'WRITABLE' if fs_test.changed else 'READ-ONLY' }}
+
+          SYSTEM INFO:
+          - Architecture: {{ ansible_architecture }}
+          - Kernel: {{ ansible_kernel }}
+          - Memory: {{ (ansible_memtotal_mb / 1024) | round(1) }} GB
+          - CPU Cores: {{ ansible_processor_vcpus }}
+
+          {% if sudo_check.rc == 0 and fs_test.changed %}
+          STATUS: ✅ READY FOR ANSIBLE AUTOMATION
+          {% else %}
+          STATUS: ❌ ISSUES DETECTED
+          {% endif %}
+      tags: ["connectivity", "summary"]
+
+    - name: Test network connectivity between nodes
+      command: ping -c 2 {{ hostvars[item]['ansible_host'] }}
+      register: network_test
+      failed_when: false
+      loop: "{{ groups['all'] }}"
+      when: hostvars[item]['ansible_host'] != ansible_host
+      tags: ["connectivity", "network"]
+
+    - name: Display network connectivity
+      debug:
+        msg: |
+          Network connectivity from {{ inventory_hostname }}:
+          {% for result in network_test.results %}
+          {% if result.item is defined %}
+          - {{ hostvars[result.item]['inventory_hostname'] }} ({{ hostvars[result.item]['ansible_host'] }}): {{ 'OK' if result.rc == 0 else 'FAILED' }}
+          {% endif %}
+          {% endfor %}
+      when: network_test.results is defined
+      tags: ["connectivity", "network"]

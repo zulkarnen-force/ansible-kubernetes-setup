@@ -1,0 +1,58 @@
+---
+# System preparation tasks for containerd
+# Configure hostname and basic system settings
+
+- name: Set hostname based on inventory
+  hostname:
+    name: "{{ inventory_hostname }}"
+  tags:
+    - containerd
+    - system-prep
+    - hostname
+
+- name: Update /etc/hosts with current hostname and IP
+  blockinfile:
+    path: /etc/hosts
+    marker: "# {mark} ANSIBLE MANAGED - Kubernetes node hostname"
+    block: |
+      127.0.1.1 {{ inventory_hostname }}
+      {{ ansible_default_ipv4.address | default(ansible_host) }} {{ inventory_hostname }}
+    backup: yes
+  tags:
+    - containerd
+    - system-prep
+    - hostname
+
+- name: Add localhost entries if missing
+  lineinfile:
+    path: /etc/hosts
+    regexp: "^127\\.0\\.0\\.1\\s+localhost"
+    line: "127.0.0.1 localhost"
+    backup: yes
+  tags:
+    - containerd
+    - system-prep
+    - hostname
+
+- name: Verify hostname is set correctly
+  command: hostnamectl status --static
+  register: current_hostname
+  changed_when: false
+  tags:
+    - containerd
+    - system-prep
+    - hostname
+    - verify
+
+- name: Display hostname configuration
+  debug:
+    msg: |
+      Hostname Configuration:
+      - Static hostname: {{ current_hostname.stdout }}
+      - Inventory hostname: {{ inventory_hostname }}
+      - Node IP: {{ ansible_default_ipv4.address | default(ansible_host) }}
+  tags:
+    - containerd
+    - system-prep
+    - hostname
+    - verify

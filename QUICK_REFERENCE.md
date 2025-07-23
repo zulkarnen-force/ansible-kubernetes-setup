@@ -7,6 +7,7 @@
 ```bash
 # Clean install (recommended)
 ansible-playbook -i inventory.ini cleanup_docker.yaml
+ansible-playbook -i inventory.ini setup_hostnames.yaml
 ansible-playbook -i inventory.ini main_containerd.yaml
 
 # Verify installation
@@ -15,6 +16,27 @@ ansible-playbook -i inventory.ini verify_setup.yaml
 # Install specific components
 ansible-playbook -i inventory.ini main_containerd.yaml --tags containerd
 ansible-playbook -i inventory.ini main_containerd.yaml --tags kubernetes
+
+# Hostname configuration only
+ansible-playbook -i inventory.ini setup_hostnames.yaml
+```
+
+### Hostname Management
+
+```bash
+# Check current hostname
+hostnamectl status
+hostname
+
+# Set hostname manually (if needed)
+sudo hostnamectl set-hostname worker-1
+
+# Verify hostname resolution
+getent hosts $(hostname)
+ping $(hostname)
+
+# Check /etc/hosts configuration
+cat /etc/hosts | grep $(hostname)
 ```
 
 ### Containerd Management
@@ -158,6 +180,11 @@ sudo systemctl restart containerd kubelet
 ### System Status
 
 ```bash
+# Hostname verification
+hostnamectl status
+hostname
+getent hosts $(hostname)
+
 # Services
 sudo systemctl is-active containerd kubelet
 

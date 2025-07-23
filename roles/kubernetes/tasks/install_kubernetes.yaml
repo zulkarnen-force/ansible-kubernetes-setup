@@ -9,7 +9,7 @@
   tags: kubernetes
 
 - name: Add Kubernetes GPG key
-  shell: curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  shell: curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.33/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
   args:
     creates: "/etc/apt/keyrings/kubernetes-apt-keyring.gpg"
   become: true
@@ -18,7 +18,7 @@
 - name: Add Kubernetes repository
   apt_repository:
     filename: kubernetes
-    repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /"
+    repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.33/deb/ /"
     update_cache: yes
   tags: kubernetes
 

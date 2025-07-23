@@ -48,35 +48,108 @@ ansible-kubernetes-setup/
 │   └── nfs-client/          # NFS client setup
 ├── main_containerd.yaml     # New main playbook with containerd
 ├── cleanup_docker.yaml      # Docker cleanup playbook
+├── setup_hostnames.yaml     # Hostname configuration playbook
+├── test_connectivity.yaml   # SSH connectivity testing
+├── troubleshoot_ssh.sh      # SSH troubleshooting script
 ├── verify_setup.yaml        # Verification playbook
+├── SSH_CONFIGURATION.md     # SSH setup guide
 ├── main.yaml               # Legacy playbook (Docker-based)
-└── inventory.ini           # Inventory file
+├── ansible.cfg             # Ansible configuration with SSH settings
+└── inventory.ini           # Inventory file with SSH configuration
 ```
 
 ## 🎯 Quick Start
 
-### 1. Cleanup Existing Docker Installation (if any)
+### 0. Verify SSH Connectivity (Important First Step)
+
+```bash
+# Test SSH connections to all hosts
+./troubleshoot_ssh.sh
+
+# Or use the connectivity test playbook
+ansible-playbook -i inventory.ini test_connectivity.yaml
+
+# Test basic Ansible connectivity
+ansible all -i inventory.ini -m ping
+```
+
+### 1. Configure Hostnames (Optional but Recommended)
+
+```bash
+# Set hostnames based on inventory before cluster setup
+ansible-playbook -i inventory.ini setup_hostnames.yaml
+```
+
+### 2. Cleanup Existing Docker Installation (if any)
 
 ```bash
 # Remove Docker and related components
 ansible-playbook -i inventory.ini cleanup_docker.yaml
 ```
 
-### 2. Setup Kubernetes with Containerd
+### 3. Setup Kubernetes with Containerd
 
 ```bash
 # Run the main containerd-based setup
 ansible-playbook -i inventory.ini main_containerd.yaml
 ```
 
-### 3. Verify the Installation
+### 4. Verify the Installation
 
 ```bash
 # Verify everything is working correctly
 ansible-playbook -i inventory.ini verify_setup.yaml
 ```
 
+## 🔐 SSH Configuration
+
+This setup uses SSH private key authentication. Your `ansible.cfg` and `inventory.ini` are already configured with SSH settings.
+
+### SSH Key Setup
+
+```bash
+# Generate SSH key if you don't have one
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa
+
+# Copy public key to all hosts
+ssh-copy-id -i ~/.ssh/id_rsa.pub master-1@10.13.0.6
+ssh-copy-id -i ~/.ssh/id_rsa.pub worker-1@192.168.18.135
+ssh-copy-id -i ~/.ssh/id_rsa.pub worker-2@192.168.18.131
+
+# Test SSH connectivity
+./troubleshoot_ssh.sh
+```
+
+### SSH Troubleshooting
+
+```bash
+# Run comprehensive SSH troubleshooting
+./troubleshoot_ssh.sh
+
+# Test connectivity with Ansible
+ansible all -i inventory.ini -m ping
+
+# Test with verbose output for debugging
+ansible all -i inventory.ini -m ping -vvv
+```
+
+For detailed SSH configuration guide, see [SSH_CONFIGURATION.md](SSH_CONFIGURATION.md)
+
 ## 🎛️ Advanced Usage
+
+### Hostname Configuration
+
+```bash
+# Configure hostnames only
+ansible-playbook -i inventory.ini setup_hostnames.yaml
+
+# Configure hostnames for specific groups
+ansible-playbook -i inventory.ini setup_hostnames.yaml --limit masters
+ansible-playbook -i inventory.ini setup_hostnames.yaml --limit workers
+
+# Verify hostname configuration
+ansible-playbook -i inventory.ini setup_hostnames.yaml --tags verify
+```
 
 ### Run Specific Components
 
@@ -86,6 +159,9 @@ ansible-playbook -i inventory.ini main_containerd.yaml --tags containerd
 
 # Install only Kubernetes components
 ansible-playbook -i inventory.ini main_containerd.yaml --tags kubernetes
+
+# Configure only hostname and system prep
+ansible-playbook -i inventory.ini main_containerd.yaml --tags system-prep
 
 # Run kernel module configuration only
 ansible-playbook -i inventory.ini main_containerd.yaml --tags kernel
@@ -202,13 +278,15 @@ ansible-playbook -i inventory.ini verify_setup.yaml
 
 ## 🏷️ Tags Reference
 
-| Tag          | Description                             |
-| ------------ | --------------------------------------- |
-| `containerd` | All containerd-related tasks            |
-| `kubernetes` | All Kubernetes-related tasks            |
-| `kernel`     | Kernel modules and sysctl configuration |
-| `verify`     | Verification and testing tasks          |
-| `cleanup`    | Cleanup and removal tasks               |
+| Tag           | Description                             |
+| ------------- | --------------------------------------- |
+| `containerd`  | All containerd-related tasks            |
+| `kubernetes`  | All Kubernetes-related tasks            |
+| `hostname`    | Hostname configuration tasks            |
+| `system-prep` | System preparation tasks                |
+| `kernel`      | Kernel modules and sysctl configuration |
+| `verify`      | Verification and testing tasks          |
+| `cleanup`     | Cleanup and removal tasks               |
 
 ## 📚 Additional Resources
 

@@ -2,6 +2,9 @@
 # Main tasks for containerd installation and configuration
 # This role completely replaces Docker with containerd as the container runtime
 
+- name: Include system preparation tasks
+  include_tasks: system_prep.yaml
+
 - name: Include containerd installation tasks
   include_tasks: install.yaml
 

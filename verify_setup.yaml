@@ -59,6 +59,18 @@
       failed_when: false
       tags: ["verify", "swap"]
 
+    - name: Check hostname configuration
+      command: hostnamectl status --static
+      register: hostname_status
+      failed_when: false
+      tags: ["verify", "hostname"]
+
+    - name: Verify /etc/hosts configuration
+      shell: grep "{{ inventory_hostname }}" /etc/hosts
+      register: hosts_config
+      failed_when: false
+      tags: ["verify", "hostname"]
+
     - name: Display verification results
       debug:
         msg: |
@@ -76,6 +88,8 @@
           - Kubelet Service: {{ 'ACTIVE' if kubelet_service_status.stdout in ['active', 'activating'] else kubelet_service_status.stdout }}
 
           SYSTEM:
+          - Hostname: {{ 'CONFIGURED' if hostname_status.stdout == inventory_hostname else 'MISMATCH (' + hostname_status.stdout + ')' }}
+          - Hosts File: {{ 'CONFIGURED' if hosts_config.rc == 0 else 'NOT CONFIGURED' }}
           - Kernel Modules: {{ 'LOADED' if kernel_modules.rc == 0 else 'NOT LOADED' }}
           - Sysctl Settings: {{ 'CONFIGURED' if sysctl_settings.rc == 0 else 'NOT CONFIGURED' }}
           - Swap: {{ 'DISABLED' if swap_status.stdout == '' else 'ENABLED' }}

@@ -1,6 +1,44 @@
 ---
 # System preparation tasks for Kubernetes
-# Disable swap and configure system settings
+# Configure hostname, disable swap and configure system settings
+
+- name: Set hostname based on inventory
+  hostname:
+    name: "{{ inventory_hostname }}"
+  tags:
+    - kubernetes
+    - system-prep
+    - hostname
+
+- name: Update /etc/hosts with current hostname
+  lineinfile:
+    path: /etc/hosts
+    regexp: "^127\\.0\\.1\\.1\\s+.*"
+    line: "127.0.1.1 {{ inventory_hostname }}"
+    backup: yes
+  tags:
+    - kubernetes
+    - system-prep
+    - hostname
+
+- name: Verify hostname is set correctly
+  command: hostnamectl status --static
+  register: current_hostname
+  changed_when: false
+  tags:
+    - kubernetes
+    - system-prep
+    - hostname
+    - verify
+
+- name: Display current hostname
+  debug:
+    msg: "Current hostname: {{ current_hostname.stdout }}"
+  tags:
+    - kubernetes
+    - system-prep
+    - hostname
+    - verify
 
 - name: Disable swap immediately
   command: swapoff -a

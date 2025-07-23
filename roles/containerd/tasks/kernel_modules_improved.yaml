@@ -1,5 +1,6 @@
 ---
-# Configure kernel modules required for containerd and Kubernetes
+# Alternative implementation using individual sysctl tasks for better idempotency
+# This approach allows Ansible to properly track changes
 
 - name: Create kernel modules configuration for containerd
   copy:

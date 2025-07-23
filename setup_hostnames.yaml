@@ -1,0 +1,79 @@
+---
+# Hostname Setup Playbook
+# This playbook configures hostnames based on inventory for all nodes
+
+- name: Configure Hostnames from Inventory
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Display current and target hostname
+      debug:
+        msg: |
+          Current hostname: {{ ansible_hostname }}
+          Target hostname: {{ inventory_hostname }}
+          Node IP: {{ ansible_default_ipv4.address | default(ansible_host) }}
+      tags: ["hostname", "info"]
+
+    - name: Set hostname based on inventory
+      hostname:
+        name: "{{ inventory_hostname }}"
+      register: hostname_changed
+      tags: ["hostname", "configure"]
+
+    - name: Update /etc/hosts with hostname mapping
+      blockinfile:
+        path: /etc/hosts
+        marker: "# {mark} ANSIBLE MANAGED - Node hostname configuration"
+        block: |
+          # Local hostname mapping
+          127.0.1.1 {{ inventory_hostname }}
+
+          # Node IP to hostname mapping
+          {{ ansible_default_ipv4.address | default(ansible_host) }} {{ inventory_hostname }}
+        backup: yes
+      tags: ["hostname", "configure"]
+
+    - name: Ensure localhost entries are present
+      lineinfile:
+        path: /etc/hosts
+        regexp: "^127\\.0\\.0\\.1"
+        line: "127.0.0.1 localhost"
+        backup: yes
+      tags: ["hostname", "configure"]
+
+    - name: Reload hostname service if changed
+      service:
+        name: systemd-hostnamed
+        state: restarted
+      when: hostname_changed.changed
+      tags: ["hostname", "configure"]
+
+    - name: Verify hostname configuration
+      command: hostnamectl status
+      register: hostnamectl_output
+      changed_when: false
+      tags: ["hostname", "verify"]
+
+    - name: Display hostname verification
+      debug:
+        msg: |
+          Hostname Configuration Completed:
+          {{ hostnamectl_output.stdout }}
+      tags: ["hostname", "verify"]
+
+    - name: Test hostname resolution
+      command: getent hosts {{ inventory_hostname }}
+      register: hostname_resolution
+      failed_when: false
+      tags: ["hostname", "verify"]
+
+    - name: Display hostname resolution
+      debug:
+        msg: |
+          Hostname Resolution Test:
+          {{ 'SUCCESS' if hostname_resolution.rc == 0 else 'FAILED' }}
+          {% if hostname_resolution.rc == 0 %}
+          Resolution: {{ hostname_resolution.stdout }}
+          {% endif %}
+      tags: ["hostname", "verify"]
