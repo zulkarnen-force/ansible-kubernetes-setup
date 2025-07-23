@@ -2,7 +2,7 @@
 nfs_export_directory: /mnt/nfs-share
 
 # Subnet allowed to access the share (e.g., Kubernetes nodes)
-nfs_allowed_subnet: 192.168.10.0/24
+nfs_allowed_subnet: 10.13.0.0/24
 
 # NFS options
 nfs_export_options: rw,sync,no_subtree_check,no_root_squash

@@ -2,20 +2,20 @@
 # Main playbook for setting up Kubernetes cluster with containerd
 # This playbook replaces Docker with containerd as the container runtime
 
-# - name: Setup Kubernetes Workers with Containerd
-#   hosts: workers
-#   become: true
-#   roles:
-#     - role: containerd
-#       tags: ["containerd", "container-runtime"]
-#     - role: kubernetes
-#       tags: ["kubernetes", "k8s"]
-
-- name: Setup Kubernetes Masters with Containerd
-  hosts: masters
+- name: Setup Kubernetes Workers with Containerd
+  hosts: workers
   become: true
   roles:
     - role: containerd
       tags: ["containerd", "container-runtime"]
     - role: kubernetes
       tags: ["kubernetes", "k8s"]
+
+# - name: Setup Kubernetes Masters with Containerd
+#   hosts: masters
+#   become: true
+#   roles:
+#     - role: containerd
+#       tags: ["containerd", "container-runtime"]
+#     - role: kubernetes
+#       tags: ["kubernetes", "k8s"]
